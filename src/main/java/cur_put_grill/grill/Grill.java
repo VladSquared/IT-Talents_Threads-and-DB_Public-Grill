@@ -18,9 +18,9 @@ public class Grill {
     private HashMap<GarnishType, Integer> readyGarnish;
     private LinkedBlockingQueue<Client> clients;
 
-    private Object lockMeat = new Object();
-    private Object lockBread = new Object();
-    private Object lockGarnish = new Object();
+    private static final Object lockMeat = new Object();
+    private static final Object lockBread = new Object();
+    private static final Object lockGarnish = new Object();
 
     public synchronized static Grill getInstance() {
         if (instance == null) {
@@ -62,10 +62,15 @@ public class Grill {
 
         initStaff();
 
-        //start printing statistics
+        //start printing statistics in file
         Thread stats = new Thread(() -> printCurrentState());
         stats.setDaemon(true);
         stats.start();
+
+        //start print statistics from DB
+        Thread statsFromDB = new Thread(()->GrillDAO.printStatisticsFromDB());
+        statsFromDB.setDaemon(true);
+        statsFromDB.start();
 
     }
 
@@ -90,13 +95,14 @@ public class Grill {
             BreadType lessAmountOfProduct = BreadType.WHITE;
             int lessAmountOfCount = readyBread.get(BreadType.WHITE).size();
             for (Map.Entry<BreadType, LinkedList<Bread>> bread : readyBread.entrySet()) {
-                if (bread.getValue().size() < lessAmountOfCount){
+                if (bread.getValue().size() < lessAmountOfCount) {
                     lessAmountOfProduct = bread.getKey();
+                    lessAmountOfCount = bread.getValue().size();
                 }
             }
 
             //in case all containers are full
-            if(lessAmountOfCount == CAPACITY_OF_BREAD_CONTAINER){
+            if (lessAmountOfCount == CAPACITY_OF_BREAD_CONTAINER) {
                 try {
                     lockBread.wait();
                 } catch (InterruptedException e) {
@@ -111,22 +117,22 @@ public class Grill {
             lockBread.notifyAll();
 
             //return time to sleep
-            return lessAmountOfProduct.getTimeInSeconds()*1000;
+            return lessAmountOfProduct.getTimeInSeconds() * 1000;
 
         }
     }
 
-    void getABread(BreadType breadType){
-        synchronized (lockBread){
+    void getABread(BreadType breadType) {
+        synchronized (lockBread) {
             //check available
-            while(true){
-                if(readyBread.get(breadType).size() == 0){
+            while (true) {
+                if (readyBread.get(breadType).size() == 0) {
                     try {
                         lockBread.wait();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                }else{
+                } else {
                     break;
                 }
             }
@@ -145,13 +151,14 @@ public class Grill {
             MeatType lessAmountOfProduct = MeatType.KIUFTE;
             int lessAmountOfCount = readyMeat.get(MeatType.KIUFTE).size();
             for (Map.Entry<MeatType, LinkedList<Meat>> meat : readyMeat.entrySet()) {
-                if (meat.getValue().size() < lessAmountOfCount){
+                if (meat.getValue().size() < lessAmountOfCount) {
                     lessAmountOfProduct = meat.getKey();
+                    lessAmountOfCount = meat.getValue().size();
                 }
             }
 
             //in case all containers are full
-            if(lessAmountOfCount == CAPACITY_OF_MEAT_CONTAINER){
+            if (lessAmountOfCount == CAPACITY_OF_MEAT_CONTAINER) {
                 try {
                     lockMeat.wait();
                 } catch (InterruptedException e) {
@@ -166,22 +173,22 @@ public class Grill {
             lockMeat.notifyAll();
 
             //return time to sleep
-            return lessAmountOfProduct.getTimeInSeconds()*1000;
+            return lessAmountOfProduct.getTimeInSeconds() * 1000;
 
         }
     }
 
-    void getAMeat(MeatType meatType){
-        synchronized (lockMeat){
+    void getAMeat(MeatType meatType) {
+        synchronized (lockMeat) {
             //check available
-            while(true){
-                if(readyMeat.get(meatType).size() == 0){
+            while (true) {
+                if (readyMeat.get(meatType).size() == 0) {
                     try {
                         lockMeat.wait();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                }else{
+                } else {
                     break;
                 }
             }
@@ -200,13 +207,14 @@ public class Grill {
             GarnishType lessAmountOfProduct = GarnishType.RUSSIAN;
             Integer lessAmountOfCount = readyGarnish.get(GarnishType.RUSSIAN);
             for (Map.Entry<GarnishType, Integer> garnish : readyGarnish.entrySet()) {
-                if (garnish.getValue() < lessAmountOfCount){
+                if (garnish.getValue() < lessAmountOfCount) {
                     lessAmountOfProduct = garnish.getKey();
+                    lessAmountOfCount = garnish.getValue();
                 }
             }
 
             //in case all containers are full
-            if(lessAmountOfCount == CAPACITY_OF_GARNISH_CONTAINER){
+            if (lessAmountOfCount == CAPACITY_OF_GARNISH_CONTAINER) {
                 try {
                     lockGarnish.wait();
                 } catch (InterruptedException e) {
@@ -222,22 +230,22 @@ public class Grill {
             lockGarnish.notifyAll();
 
             //return time to sleep
-            return lessAmountOfProduct.getTimeInSeconds()*1000;
+            return lessAmountOfProduct.getTimeInSeconds() * 1000;
 
         }
     }
 
-    void get200GramsGarnish(GarnishType garnishType){
-        synchronized (lockGarnish){
+    void get200GramsGarnish(GarnishType garnishType) {
+        synchronized (lockGarnish) {
             //check available
-            while(true){
-                if(readyGarnish.get(garnishType) < Cashier.PORTION_GARNISH){
+            while (true) {
+                if (readyGarnish.get(garnishType) < Cashier.PORTION_GARNISH) {
                     try {
                         lockGarnish.wait();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                }else{
+                } else {
                     break;
                 }
             }
